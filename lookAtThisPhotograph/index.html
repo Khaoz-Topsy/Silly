@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Look at this photograph</title>
+
+    <style>
+        body {
+            background-color: #645F63;
+            overflow: hidden;
+        }
+
+        body,
+        img {
+            margin: 0;
+            padding: 0;
+        }
+
+        body>img {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        #inside-photo-frame {
+            position: absolute;
+            top: 47vh;
+            right: 11.25vw;
+            transform: rotateZ(-15deg);
+        }
+
+        #inside-photo-frame,
+        .inside-photo-frame-inner {
+            width: 28.5vw;
+            height: 18.5vw;
+        }
+
+        .inside-photo-frame-inner {
+            position: relative;
+            overflow: hidden;
+        }
+
+        #inside-photo-frame img,
+        #inside-photo-frame video {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center;
+        }
+
+        .button {
+            appearance: button;
+            backface-visibility: hidden;
+            background-color: #405cf5;
+            border-radius: 6px;
+            border-width: 0;
+            box-shadow: rgba(50, 50, 93, .1) 0 0 0 1px inset, rgba(50, 50, 93, .1) 0 2px 5px 0, rgba(0, 0, 0, .07) 0 1px 1px 0;
+            box-sizing: border-box;
+            color: #fff;
+            cursor: pointer;
+            font-family: -apple-system, system-ui, "Segoe UI", Roboto, "Helvetica Neue", Ubuntu, sans-serif;
+            font-size: 100%;
+            height: 44px;
+            line-height: 1.15;
+            margin: 12px 0 0;
+            outline: none;
+            overflow: hidden;
+            padding: 0 25px;
+            position: relative;
+            text-align: center;
+            text-transform: none;
+            transform: translateZ(0);
+            transition: all .2s, box-shadow .08s ease-in;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+            width: 50%;
+            margin: 0 25%;
+        }
+
+        .button:focus {
+            box-shadow: rgba(50, 50, 93, .1) 0 0 0 1px inset, rgba(50, 50, 93, .2) 0 6px 15px 0, rgba(0, 0, 0, .1) 0 2px 2px 0, rgba(50, 151, 211, .3) 0 0 0 4px;
+        }
+
+        #setup {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 1em;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="inside-photo-frame">
+        <div class="inside-photo-frame-inner">
+            <video id="user-video" class="hidden" autoplay></video>
+            <img id="user-image" class="hidden" src="./nickelback.png" alt="user image" />
+            <div id="setup">
+                <button class="button" onclick="displayImageInFrame()">Click to select an image</button>
+                <button class="button" onclick="displayVideoStreamInFrame()">Click to select a screen</button>
+            </div>
+        </div>
+    </div>
+    <img src="./nickelback.png" alt="Nickelback" />
+    <input type="file" id="user-image-input" accept="image/*">
+</body>
+
+<script>
+    function displayVideoStreamInFrame() {
+        const videoElem = document.getElementById("user-video");
+        const setupElem = document.getElementById("setup");
+
+        navigator.mediaDevices
+            .getDisplayMedia({
+                video: {
+                    displaySurface: "browser",
+                },
+                audio: false,
+            })
+            .catch((err) => {
+                console.error(err);
+                return null;
+            }).then(stream => {
+                const track = stream.getVideoTracks()[0];
+                track.addEventListener('ended', () => {
+                    setupElem.classList.remove('hidden');
+                    videoElem.classList.add('hidden');
+                });
+                videoElem.srcObject = stream;
+                setupElem.classList.add('hidden');
+                videoElem.classList.remove('hidden');
+            });
+    }
+
+    function displayImageInFrame() {
+        const inputElem = document.getElementById('user-image-input');
+        const imageElem = document.getElementById("user-image");
+        const setupElem = document.getElementById("setup");
+
+        inputElem.addEventListener('change', () => {
+            const file = inputElem.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = e => {
+                    imageElem.src = e.target.result;
+                    imageElem.style.display = 'block';
+                    setupElem.classList.add('hidden');
+                    imageElem.classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+        inputElem.click();
+    }
+</script>
+
+</html>
