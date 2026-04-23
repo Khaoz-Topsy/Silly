@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Screen Wake Lock</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: #0a0a0a;
+        font-family: "Courier New", monospace;
+        color: #e0e0e0;
+        gap: 2rem;
+      }
+
+      h1 {
+        font-size: 1.1rem;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: #666;
+      }
+
+      #toggle {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        border: 2px solid #333;
+        background: #111;
+        cursor: pointer;
+        font-size: 2.5rem;
+        transition:
+          border-color 0.3s,
+          box-shadow 0.3s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      #toggle:hover {
+        border-color: #555;
+      }
+
+      #toggle.active {
+        border-color: #4ade80;
+        box-shadow: 0 0 30px rgba(74, 222, 128, 0.2);
+      }
+
+      #toggle.disabled {
+        opacity: 0.3;
+        cursor: not-allowed;
+      }
+
+      #status {
+        font-size: 0.85rem;
+        letter-spacing: 0.1em;
+        color: #555;
+        transition: color 0.3s;
+      }
+
+      #status.active,
+      .active {
+        color: #4ade80;
+      }
+
+      #unsupported {
+        display: none;
+        color: #f87171;
+        font-size: 0.85rem;
+        text-align: center;
+        max-width: 280px;
+        line-height: 1.6;
+      }
+    </style>
+  </head>
+  <body>
+    <h1 id="heading">Wake Lock</h1>
+
+    <button id="toggle" title="Toggle wake lock"></button>
+
+    <p id="status"></p>
+    <p id="unsupported"></p>
+
+    <script>
+      const h1 = document.getElementById("heading");
+      const btn = document.getElementById("toggle");
+      const status = document.getElementById("status");
+      const unsupported = document.getElementById("unsupported");
+
+      const texts = {
+        inActive: {
+          toggle: "💤",
+          toggleClass: "in-active",
+          status: "Screen can sleep",
+          statusClass: "in-active",
+          unsupported: "",
+        },
+        active: {
+          toggle: "☀️",
+          toggleClass: "active",
+          status: "Screen awake",
+          statusClass: "active",
+          unsupported: "",
+        },
+        unsupported: {
+          toggle: "☀️",
+          toggleClass: "disabled",
+          status: "Screen awake",
+          statusClass: "disabled",
+          unsupported:
+            "Wake Lock API is not supported in this browser. Try Chrome or Edge on a supported device.",
+        },
+      };
+
+      async function setText(textProp) {
+        h1.classList.remove(...h1.classList);
+        h1.classList.add(textProp.statusClass);
+        btn.classList.remove(...btn.classList);
+        btn.classList.add(textProp.toggleClass);
+        btn.textContent = textProp.toggle;
+        status.textContent = textProp.status;
+        status.classList.remove(...status.classList);
+        status.classList.add(textProp.statusClass);
+        unsupported.textContent = textProp.unsupported;
+      }
+
+      let wakeLock = null;
+
+      if (!("wakeLock" in navigator)) {
+        btn.disabled = true;
+        unsupported.style.display = "block";
+        setText(texts.unsupported);
+      } else {
+        setText(texts.inActive);
+      }
+
+      async function requestWakeLock() {
+        try {
+          wakeLock = await navigator.wakeLock.request("screen");
+          setText(texts.active);
+
+          wakeLock.addEventListener("release", () => {
+            if (wakeLock) releaseWakeLock(false);
+          });
+        } catch (err) {
+          console.error(err);
+          status.textContent = `ERROR: ${err.message}`;
+        }
+      }
+
+      function releaseWakeLock(manual = true) {
+        if (wakeLock && manual) wakeLock.release();
+        wakeLock = null;
+        setText(texts.inActive);
+      }
+
+      btn.addEventListener("click", () => {
+        if (wakeLock) {
+          releaseWakeLock(true);
+        } else {
+          requestWakeLock();
+        }
+      });
+
+      // Re-acquire wake lock when tab becomes visible again
+      document.addEventListener("visibilitychange", async () => {
+        if (
+          document.visibilityState === "visible" &&
+          btn.classList.contains("active")
+        ) {
+          await requestWakeLock();
+        }
+      });
+    </script>
+  </body>
+</html>
